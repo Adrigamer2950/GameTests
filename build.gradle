@@ -1,0 +1,8 @@
+group = 'me.adrigamer2950.gametests'
+version = properties.get("version") + (
+        project.hasProperty("BUILD_NUMBER") ?
+                (project.property("BUILD_NUMBER") == "0" ? "" : ("-b" + project.property("BUILD_NUMBER")))
+                : ""
+)
+description = properties.get("description")
+author = properties.get("author")

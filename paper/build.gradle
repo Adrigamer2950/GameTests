@@ -1,0 +1,149 @@
+//file:noinspection GroovyAssignabilityCheck
+//file:noinspection GroovyAccessibility
+//file:noinspection VulnerableLibrariesLocal
+import xyz.jpenilla.runtask.task.AbstractRun
+
+plugins {
+    id 'java'
+    id "xyz.jpenilla.run-paper" version "2.3.1"
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
+    id 'net.minecrell.plugin-yml.bukkit' version '0.6.0'
+}
+
+group = 'me.adrigamer2950.gametests'
+version = parent.version
+description = parent.description
+author = parent.author
+
+repositories {
+    mavenCentral()
+    maven {
+        url = "https://repo.papermc.io/repository/maven-public/"
+    }
+    maven {
+        url = "https://repo.devadri.es/repository/releases"
+    }
+}
+
+dependencies {
+    // Paper API
+    compileOnly "io.papermc.paper:paper-api:1.18.2-R0.1-SNAPSHOT"
+
+    // AdriAPI
+    compileOnly 'me.adrigamer2950:AdriAPI:2.0.1'
+
+    // Lombok
+    compileOnly 'org.projectlombok:lombok:1.18.36'
+    annotationProcessor 'org.projectlombok:lombok:1.18.36'
+}
+
+def targetJavaVersion = 21
+
+tasks.withType(JavaCompile).configureEach {
+    if (targetJavaVersion >= 10 || JavaVersion.current().isJava10Compatible()) {
+        options.release = targetJavaVersion
+        options.encoding = 'UTF-8'
+    }
+}
+
+java {
+    def javaVersion = JavaVersion.toVersion(targetJavaVersion)
+    sourceCompatibility = javaVersion
+    targetCompatibility = javaVersion
+}
+
+processResources {
+    def props = [
+            version    : this.version,
+            description: this.description,
+            author     : this.author
+    ]
+    inputs.properties props
+    filteringCharset 'UTF-8'
+    filesMatching('plugin.yml') {
+        expand props
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+tasks.build.finalizedBy(shadowJar)
+
+jar {
+    archiveBaseName.set(rootProject.name)
+    archiveClassifier.set('Paper')
+    //noinspection GroovyAssignabilityCheck
+    archiveVersion.set(version)
+}
+
+shadowJar {
+    archiveBaseName.set(rootProject.name)
+    archiveVersion.set(version)
+    archiveClassifier.set('Paper')
+}
+
+tasks.shadowJar.doLast {
+    copy {
+        from "./build/libs/"
+        into "../build/"
+        include "*.jar"
+    }
+}
+
+runServer {
+    minecraftVersion("1.18.2")
+
+    downloadPlugins {
+        // AdriAPI
+        modrinth("adriapi", "2.0.1")
+
+        // ViaVersion
+        hangar("ViaVersion", "5.0.3")
+
+        // PlaceholderAPI
+        url("https://github.com/PlaceholderAPI/PlaceholderAPI/releases/download/2.11.4/PlaceholderAPI-2.11.4.jar")
+
+        // PlugmanX
+        url("https://github.com/Test-Account666/PlugManX/releases/download/2.4.1/PlugManX-2.4.1.jar")
+
+        // LuckPerms
+        url("https://download.luckperms.net/1567/bukkit/loader/LuckPerms-Bukkit-5.4.150.jar")
+    }
+}
+
+tasks.withType(AbstractRun).configureEach {
+    javaLauncher = javaToolchains.launcherFor {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+    jvmArgs(
+            // Hot Swap
+            "-XX:+AllowEnhancedClassRedefinition",
+
+            // Aikar Flags
+            "--add-modules=jdk.incubator.vector", "-XX:+UseG1GC", "-XX:+ParallelRefProcEnabled",
+            "-XX:MaxGCPauseMillis=200", "-XX:+UnlockExperimentalVMOptions", "-XX:+DisableExplicitGC",
+            "-XX:+AlwaysPreTouch", "-XX:G1NewSizePercent=30", "-XX:G1MaxNewSizePercent=40",
+            "-XX:G1HeapRegionSize=8M", "-XX:G1ReservePercent=20", "-XX:G1HeapWastePercent=5",
+            "-XX:G1MixedGCCountTarget=4", "-XX:InitiatingHeapOccupancyPercent=15",
+            "-XX:G1MixedGCLiveThresholdPercent=90", "-XX:G1RSetUpdatingPauseTimePercent=5",
+            "-XX:SurvivorRatio=32", "-XX:+PerfDisableSharedMem", "-XX:MaxTenuringThreshold=1",
+            "-Dusing.aikars.flags=https://mcflags.emc.gs", "-Daikars.new.flags=true"
+    )
+
+}
+
+bukkit {
+    name = rootProject.name
+    version = this.version
+    main = "me.adrigamer2950.gametests.paper.GTPaper"
+    apiVersion = "1.18"
+    author = this.author
+    description = this.description
+    website = "https://github.com/Adrigamer2950/GameTests"
+    load = 'STARTUP'
+    foliaSupported = true
+}
+
+tasks.register('prepareKotlinBuildScriptModel') {}
