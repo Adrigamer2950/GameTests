@@ -93,7 +93,7 @@ tasks.shadowJar.doLast {
 }
 
 runServer {
-    minecraftVersion("1.18.2")
+    minecraftVersion("1.20.2")
 
     downloadPlugins {
         // AdriAPI
@@ -115,6 +115,7 @@ runServer {
 
 tasks.withType(AbstractRun).configureEach {
     javaLauncher = javaToolchains.launcherFor {
+        vendor = JvmVendorSpec.JETBRAINS
         languageVersion = JavaLanguageVersion.of(21)
     }
     jvmArgs(
